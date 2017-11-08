@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <title>Commercial Development Dashboard</title>
+       
+        <script src = "https://d3js.org/d3.v4.min.js"></script>
+        <script src = "districts.js"></script>
+        <script src = "watersheds.js"></script>
+        <script src = "lakes.js"></script>
+        <style type="text/css">
+
+                #map {
+                	position:absolute;
+                	top:10px;
+                	left:10px;
+                	width:500px;
+                	height: 600px;
+                }
+
+                #selectorDiv {
+                	position:absolute;
+                	top:10px;
+                	left:510px;
+                }
+
+                #barChart {
+                	position:absolute;
+                	top:100px;
+                	left:510px;
+                	height: 250px;
+                }
+        
+        </style>
+
+    </head>
+
+    <body>
+
+      <div id = "selectorDiv">
+
+         Analyze
+         <select id = "pointselector">
+          <option selected = "selected" value = "Uniform">Frequency</option>
+          <option value = "Magnitude">Removal Impact</option>
+        </select>
+        By 
+        
+        <select id = "geoselector">
+          <option selected = "selected" value = "District" >Council District</option>
+          <option value = "Watershed">Watershed Flood Plain</option>
+        </select>
+        
+         
+        
+       
+
+    </div>
+      
+    <div id = "map">Map</div>
+    
+    <div id= "barChart">Inches Removed by Council District</div>
+    
+    <div id = "scatterPlot"></div>
+    
+    <div id = "dataTable"><div>
+
+    <script type="text/javascript">
+
+
+    var width = 500,
+		    height = 600;
+
+
+    var map = d3.select("#map")
+                  .append("svg")
+                  .attr('width', width)
+                  .attr('height', height);
+
+    map.append("rect")
+       .attr('width', width)
+       .attr('height', height)
+       .attr("fill", "white");
+
+    var g = map.append('g');
+    
+    var g2 = map.append('g');
+
+
+    var albersProjection = d3.geoAlbers()
+                             .scale(65000)
+                             .rotate([97.74317, 0])
+                             .center([0, 30.2672])
+                             .translate([width/2, height/2]);
+
+     var geoPath = d3.geoPath().projection(albersProjection);
+
+     function updateMap (mapData){
+             g.selectAll('path').remove();
+             g.selectAll('path')
+              .data(mapData)
+              .enter()
+              .append('path')
+              .attr('district',function(d){return d.properties.single_mem})
+              .attr('watershed',function(d){return d.properties.watershed_})
+              .attr('stroke','black')
+              .attr('fill', '#ccc')
+              .attr('d', geoPath)
+              .attr('stroke-width',1).attr("opacity",.5);g.selectAll('circle').raise()}
+
+      function mapLakes (mapData){
+              g2.selectAll('path')
+                 .data(mapData)
+                 .enter()
+                 .append('path')
+                 .attr('stroke','#256d7b')
+                 .attr('fill', '#256d7b')
+                 .attr('d', geoPath)
+                 .attr('stroke-width',.001)
+                   }
+
+   function resetMouse(){
+   var mouse = d3.select("g")
+                 .selectAll("path")
+                 .on("mouseover",function(d){console.log(
+                           d.properties.watershed_,d.properties.single_mem);
+                           d3.select(this)
+                           .attr("opacity",.9);})
+                  .on("mouseout", function(){
+                    d3.select(this)
+                    .attr("opacity",.5)
+                  })}
+
+    mapLakes(lakes.features);
+    updateMap(District.features);
+    resetMouse()
+
+var url = 'https://data.austintexas.gov/resource/ym5m-avhj.json?$limit=2000'
+
+
+d3.json(url,function(data) {
+
+var locations = g.selectAll('circle')
+      .data(data);
+      locations.enter().append("circle")
+
+          .attr("id", function(d) {console.log(d.location)})
+          .attr("r",2)
+          .attr("transform", function(d) {var s = d.location;console.log(s);
+                                          if (s != undefined)
+                                          {return "translate(" + albersProjection([d.location.coordinates[0],d.location.coordinates[1]]) + ")"}
+                                           else {return [0,0]}})
+          .attr("fill", "red")
+          .attr("opacity", function(d){var s = d.location;if (s != undefined){return 1}else{return 0}})
+          //.attr("opacity", function(d) {var s = d.species;if (s != undefined) { if (s.match(/ash/i)) {var val =  1} else {var val =.5}} else {val = .5} return val;})
+          .attr('stroke', '#999')
+          .attr('d', geoPath);});
+    var geoselector = d3.select("#geoselector");
+
+                   geoselector.on("change", function(){
+                                         var value = geoselector.property("value");
+                                         d3.select("#barChart").text("Inches Removed by " + value);
+                                         var mapData = eval(d3.select(this).property("value"));
+                                         updateMap(mapData.features);resetMouse();
+                                        })
+     
+     var pointselector = d3.select("#pointselector");
+     
+
+                   pointselector.on("change", function(){
+                                         var value = pointselector.property("value");
+                                         g.selectAll('circle')
+                                          .attr("r",function(d){ if (value == "Magnitude") {
+                                                                       return d.total_removed/1000
+                                                                                           } 
+                                                                 else {
+                                                                       return 2
+                                                                      }
+                                                               })
+                                                         })
+      </script>
+
+    </body>
+
+</html>
